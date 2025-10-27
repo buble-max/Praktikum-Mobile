@@ -7,6 +7,8 @@
   packages = [
     pkgs.jdk21
     pkgs.unzip
+    pkgs.neofetch
+    pkgs.htop
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -30,7 +32,7 @@
           manager = "flutter";
         };
         android = {
-          command = ["flutter" "run" "--machine" "-d" "android" "-d" "localhost:5555"];
+          command = ["flutter" "run" "--machine" "-d" "pixel_7"];
           manager = "flutter";
         };
       };
