@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/db/my_db.dart';
+import 'package:myapp/database/db.dart'; // 🟩 DIGANTI: Menggunakan file db yang benar
 import 'package:myapp/pages/home_page.dart';
+import 'package:myapp/provider/mhs_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,6 +14,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  bool _isLoading = false;
 
   void _login() async {
     String username = _usernameController.text.trim();
@@ -27,15 +31,38 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    final db = MyDb();
-    final user = await db.getUser(username, password);
+    setState(() => _isLoading = true);
+
+    
+    final db = DBapps(); 
+    final user = await db.getUser(username, password); 
+
+    bool loginSuccess = (user != null);
+    
 
     if (!mounted) return;
 
-    if (user != null) {
+    if (loginSuccess) {
+      // Sinkronisasi data dari API ketika login berhasil
+      final provider = Provider.of<MhsProvider>(context, listen: false);
+      await provider.fetchMahasiswaFromApi();
+
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MyHomePage(title: 'Daftar Mahasiswa', username: username)),
+        MaterialPageRoute(
+          builder: (context) => MyHomePage(
+            title: 'Daftar Mahasiswa',
+            username: username,
+          ),
+        ),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selamat datang, $username! Data telah disinkronisasi.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,6 +72,8 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     }
+
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -57,43 +86,63 @@ class _LoginPageState extends State<LoginPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Sign In",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Sign In",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: "Username",
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: "Password",
+                    prefixIcon: Icon(Icons.lock),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {},
+                    child: const Text("Forgot Password?"),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Login",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+              ],
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(labelText: "Username"),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: "Password"),
-            ),
-            const SizedBox(height: 15),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {},
-                child: const Text("Forgot Password?"),
-              ),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _login,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 45),
-              ),
-              child: const Text("Login"),
-            ),
-          ],
+          ),
         ),
       ),
     );

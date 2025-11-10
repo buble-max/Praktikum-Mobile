@@ -9,6 +9,7 @@
     pkgs.unzip
     pkgs.neofetch
     pkgs.htop
+    pkgs.cmake
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -32,7 +33,7 @@
           manager = "flutter";
         };
         android = {
-          command = ["flutter" "run" "--machine" "-d" "pixel_7"];
+          command = ["flutter" "run" "--machine" "-d" "pixel_7_api_31"];
           manager = "flutter";
         };
       };

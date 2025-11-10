@@ -18,13 +18,33 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<MhsProvider>(context); // 🟩 DITAMBAHKAN: untuk akses provider langsung
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(widget.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          widget.title,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Theme.of(context).primaryColor,
         elevation: 3,
-        shadowColor: Colors.black.withAlpha(77), // Perbaikan di sini
+        shadowColor: Colors.black.withAlpha(77), // (sudah ada)
+        actions: [ // 🟩 DITAMBAHKAN: tombol sinkronisasi API
+          IconButton(
+            icon: const Icon(Icons.cloud_download, color: Colors.white),
+            tooltip: 'Sinkronisasi dari API',
+            onPressed: () async {
+              await provider.fetchMahasiswaFromApi(); // 🟩 Panggil fungsi fetch dari API di provider
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Data berhasil disinkronisasi dari API!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         backgroundColor: const Color(0xFFEBD9D1),
@@ -71,91 +91,95 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      body: Consumer<MhsProvider>(
-        builder: (context, provider, child) {
-          if (provider.mahasiswa.isEmpty) {
-            return const Center(
-              child: Text(
-                "Belum ada data mahasiswa.\nTekan tombol + untuk menambah.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(12.0),
-            itemCount: provider.mahasiswa.length,
-            itemBuilder: (context, index) {
-              final MhsModel mhs = provider.mahasiswa[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ListTile(
-                  leading: const Icon(Icons.school, color: Colors.blueAccent),
-                  title: Text(
-                    mhs.nama,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+
+      body: provider.isLoading // 🟩 DITAMBAHKAN: tampilkan indikator loading saat fetch API
+          ? const Center(child: CircularProgressIndicator())
+          : Consumer<MhsProvider>(
+              builder: (context, provider, child) {
+                if (provider.mahasiswa.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Belum ada data mahasiswa.\nTekan tombol + untuk menambah atau sinkronisasi dari API.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
-                  ),
-                  subtitle: Text(
-                    'NIM: ${mhs.nim}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UpdateMhs(mhs: mhs),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12.0),
+                  itemCount: provider.mahasiswa.length,
+                  itemBuilder: (context, index) {
+                    final MhsModel mhs = provider.mahasiswa[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ListTile(
+                        leading: const Icon(Icons.school, color: Colors.blueAccent),
+                        title: Text(
+                          mhs.nama,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'NIM: ${mhs.nim}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UpdateMhs(mhs: mhs),
+                            ),
+                          );
+                        },
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete_outline, color: Colors.red[700]),
+                          onPressed: () {
+                            // Show a confirmation dialog before deleting
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext ctx) {
+                                return AlertDialog(
+                                  title: const Text('Konfirmasi Hapus'),
+                                  content: Text('Apakah Anda yakin ingin menghapus data ${mhs.nama}?'),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: const Text('Batal'),
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text('Hapus', style: TextStyle(color: Colors.red[700])),
+                                      onPressed: () {
+                                        provider.delete(mhs);
+                                        Navigator.of(ctx).pop();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Data ${mhs.nama} berhasil dihapus.'),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
                     );
                   },
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete_outline, color: Colors.red[700]),
-                    onPressed: () {
-                      // Show a confirmation dialog before deleting
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext ctx) {
-                          return AlertDialog(
-                            title: const Text('Konfirmasi Hapus'),
-                            content: Text('Apakah Anda yakin ingin menghapus data ${mhs.nama}?'),
-                            actions: <Widget>[
-                              TextButton(
-                                child: const Text('Batal'),
-                                onPressed: () {
-                                  Navigator.of(ctx).pop();
-                                },
-                              ),
-                              TextButton(
-                                child: Text('Hapus', style: TextStyle(color: Colors.red[700])),
-                                onPressed: () {
-                                  provider.delete(mhs);
-                                  Navigator.of(ctx).pop();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Data ${mhs.nama} berhasil dihapus.'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+                );
+              },
+            ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(

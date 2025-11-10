@@ -26,30 +26,28 @@ class DBapps {
           )
         ''');
 
-        // Buat akun default untuk login awal
+        // Buat akun default 'Admin' saat database pertama kali dibuat
         await db.insert('users', {
-          'username': 'admin',
-          'password': '1234',
+          'username': 'Admin',
+          'password': 'Admin1234',
         });
       },
     );
   }
 
-  Future<bool> login(String username, String password) async {
+  /// Mengambil pengguna berdasarkan username dan password.
+  /// Mengembalikan Map data pengguna jika ditemukan, jika tidak null.
+  Future<Map<String, dynamic>?> getUser(String username, String password) async {
     final db = await database;
-    final res = await db.query(
+    final List<Map<String, dynamic>> result = await db.query(
       'users',
       where: 'username = ? AND password = ?',
       whereArgs: [username, password],
     );
-    return res.isNotEmpty;
-  }
 
-  Future<int> register(String username, String password) async {
-    final db = await database;
-    return await db.insert('users', {
-      'username': username,
-      'password': password,
-    });
+    if (result.isNotEmpty) {
+      return result.first; // Kembalikan data pengguna jika ditemukan
+    }
+    return null; // Kembalikan null jika tidak ada yang cocok
   }
 }

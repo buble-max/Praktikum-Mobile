@@ -1,11 +1,29 @@
+import 'dart:convert';
+
 class MhsModel {
-  int? id;
-  String nama, nim;
+  String nim;
+  String nama;
+  String? alamat; // 🟩 DIGANTI: Diizinkan untuk null (nullable)
 
-  MhsModel({this.id, required this.nim, required this.nama});
+  MhsModel({
+    required this.nim,
+    required this.nama,
+    this.alamat, // 🟩 DIGANTI: Menjadi parameter opsional
+  });
 
-  factory MhsModel.fromMap(map) =>
-      MhsModel(id: map['id'], nim: map['nim'], nama: map['nama']);
+  factory MhsModel.fromRawJson(String str) => MhsModel.fromJson(json.decode(str));
 
-  Map<String, dynamic> toMap() => {'nim': nim, 'nama': nama};
+  String toRawJson() => json.encode(toMap());
+
+  factory MhsModel.fromJson(Map<String, dynamic> json) => MhsModel(
+        nim: json["nim"],
+        nama: json["nama"],
+        alamat: json["alamat"], // 🟩 CUKUP SEPERTI INI: Akan menjadi null jika tidak ada
+      );
+
+  Map<String, dynamic> toMap() => {
+        "nim": nim,
+        "nama": nama,
+        "alamat": alamat, // 🟩 CUKUP SEPERTI INI: Akan mengirim null jika nilainya null
+      };
 }
